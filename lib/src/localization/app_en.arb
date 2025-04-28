@@ -1,0 +1,6 @@
+{
+  "appTitle": "daily_care",
+  "@appTitle": {
+    "description": "The title of the application"
+  }
+}

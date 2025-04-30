@@ -1,85 +1,155 @@
+import 'dart:convert';
+import 'dart:io';
+import 'package:daily_care/apikey.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:http/http.dart' as http;
+import 'package:speech_to_text/speech_to_text.dart' as stt;
 
-import 'sample_feature/sample_item_details_view.dart';
-import 'sample_feature/sample_item_list_view.dart';
-import 'settings/settings_controller.dart';
-import 'settings/settings_view.dart';
-
-/// The Widget that configures your application.
-class MyApp extends StatelessWidget {
-  const MyApp({
+class HomeScreen extends StatefulWidget {
+  const HomeScreen({
     super.key,
     required this.settingsController,
   });
 
-  final SettingsController settingsController;
+  final dynamic settingsController;
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  final TextEditingController _controller = TextEditingController();
+  final stt.SpeechToText _speech = stt.SpeechToText();
+
+  bool _isListening = false;
+  String _response = '';
+  XFile? _selectedImage;
+
+  Future<void> _startListening() async {
+    bool available = await _speech.initialize();
+    if (available) {
+      setState(() => _isListening = true);
+      _speech.listen(onResult: (result) {
+        setState(() => _controller.text = result.recognizedWords);
+      });
+    }
+  }
+
+  Future<void> _pickImage() async {
+    final picker = ImagePicker();
+    final picked = await picker.pickImage(source: ImageSource.gallery);
+    if (picked != null) {
+      setState(() => _selectedImage = picked);
+    }
+  }
+
+  Future<void> _callGemini() async {
+    final prompt = _controller.text.trim();
+    if (prompt.isEmpty) return;
+
+    const apiKey = geminiAPIKey;
+    Uri url;
+    Map<String, dynamic> body;
+
+    if (_selectedImage != null) {
+      final bytes = await _selectedImage!.readAsBytes();
+      final base64Image = base64Encode(bytes);
+      url = Uri.parse('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=$apiKey');
+      body = {
+        "contents": [
+          {
+            "parts": [
+              {"text": prompt},
+              {
+                "inlineData": {
+                  "mimeType": "image/jpeg",
+                  "data": base64Image
+                }
+              }
+            ]
+          }
+        ]
+      };
+    } else {
+      url = Uri.parse('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=$apiKey');
+      body = {
+        "contents": [
+          {
+            "parts": [
+              {"text": prompt}
+            ]
+          }
+        ]
+      };
+    }
+
+    final res = await http.post(
+      url,
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode(body),
+    );
+
+    if (res.statusCode == 200) {
+      final data = jsonDecode(res.body);
+      setState(() {
+        _response = data['candidates'][0]['content']['parts'][0]['text'];
+      });
+    } else {
+      setState(() {
+        _response = '오류: ${res.body}';
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    // Glue the SettingsController to the MaterialApp.
-    //
-    // The ListenableBuilder Widget listens to the SettingsController for changes.
-    // Whenever the user updates their settings, the MaterialApp is rebuilt.
-    return ListenableBuilder(
-      listenable: settingsController,
-      builder: (BuildContext context, Widget? child) {
-        return MaterialApp(
-          // Providing a restorationScopeId allows the Navigator built by the
-          // MaterialApp to restore the navigation stack when a user leaves and
-          // returns to the app after it has been killed while running in the
-          // background.
-          restorationScopeId: 'app',
-
-          // Provide the generated AppLocalizations to the MaterialApp. This
-          // allows descendant Widgets to display the correct translations
-          // depending on the user's locale.
-          localizationsDelegates: const [
-            AppLocalizations.delegate,
-            GlobalMaterialLocalizations.delegate,
-            GlobalWidgetsLocalizations.delegate,
-            GlobalCupertinoLocalizations.delegate,
-          ],
-          supportedLocales: const [
-            Locale('en', ''), // English, no country code
-          ],
-
-          // Use AppLocalizations to configure the correct application title
-          // depending on the user's locale.
-          //
-          // The appTitle is defined in .arb files found in the localization
-          // directory.
-          onGenerateTitle: (BuildContext context) =>
-              AppLocalizations.of(context)!.appTitle,
-
-          // Define a light and dark color theme. Then, read the user's
-          // preferred ThemeMode (light, dark, or system default) from the
-          // SettingsController to display the correct theme.
-          theme: ThemeData(),
-          darkTheme: ThemeData.dark(),
-          themeMode: settingsController.themeMode,
-
-          // Define a function to handle named routes in order to support
-          // Flutter web url navigation and deep linking.
-          onGenerateRoute: (RouteSettings routeSettings) {
-            return MaterialPageRoute<void>(
-              settings: routeSettings,
-              builder: (BuildContext context) {
-                switch (routeSettings.name) {
-                  case SettingsView.routeName:
-                    return SettingsView(controller: settingsController);
-                  case SampleItemDetailsView.routeName:
-                    return const SampleItemDetailsView();
-                  case SampleItemListView.routeName:
-                  default:
-                    return const SampleItemListView();
-                }
-              },
-            );
-          },
-        );
-      },
+    return MaterialApp(
+      home: Scaffold(
+        appBar: AppBar(title: const Text('Gemini 인터페이스')),
+        body: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            children: [
+              TextField(
+                controller: _controller,
+                decoration: const InputDecoration(labelText: '프롬프트를 입력하세요'),
+                maxLines: 2,
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  IconButton(
+                    icon: Icon(_isListening ? Icons.mic_off : Icons.mic),
+                    onPressed: _isListening ? _speech.stop : _startListening,
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.image),
+                    onPressed: _pickImage,
+                  ),
+                  const Spacer(),
+                  ElevatedButton(
+                    onPressed: _callGemini,
+                    child: const Text('Gemini 요청'),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              if (_selectedImage != null)
+                Image.file(
+                  File(_selectedImage!.path),
+                  height: 150,
+                ),
+              const Divider(),
+              Expanded(
+                child: SingleChildScrollView(
+                  child: Text(_response),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

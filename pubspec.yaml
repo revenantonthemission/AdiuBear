@@ -12,7 +12,9 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  flutter_gemini: ^3.0.0
+  http: ^0.13.6
+  image_picker: ^1.0.4
+  speech_to_text: ^7.0.0
   flutter_localizations:
     sdk: flutter
 

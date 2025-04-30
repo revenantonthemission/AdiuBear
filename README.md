@@ -1,29 +1,20 @@
 # daily_care
 
-A new Flutter project.
+GDGoC 솔루션 챌린지용 프로젝트입니다.
 
-## Getting Started
+## 주요 기능
 
-This project is a starting point for a Flutter application that follows the
-[simple app state management
-tutorial](https://flutter.dev/to/state-management-sample).
+- 음성, 이미지, 텍스트를 통한 Google Gemini와의 상호작용
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+## 주요 변경 사항
 
-## Assets
+### 2025/4/30: Gemini 연동 성공
 
-The `assets` directory houses images, fonts, and any other files you want to
-include with your application.
+#### Gemini로부터 정보를 얻어오는 방법
 
-The `assets/images` directory contains [resolution-aware
-images](https://flutter.dev/to/resolution-aware-images).
+- 마이크 버튼이나 이미지 버튼, 혹은 텍스트 필드를 통해 입력하고 'Gemini 요청' 버튼을 입력하면 잠시 후 결과가 아래 화면에 출력됨.
+- 비용 문제나 API 키 보호 관련 문제 등 더 자세히 알아봐야 할 것이 아직 많음.
+- 키 보호 관련 문제로 인해 API 키가 담긴 파일은 업로드하지 않았음.
 
-## Localization
-
-This project generates localized messages based on arb files found in
-the `lib/src/localization` directory.
-
-To support additional languages, please visit the tutorial on
-[Internationalizing Flutter apps](https://flutter.dev/to/internationalization).
+#### Gemini 연동 성공 화면
+![Gemini Interaction Success](Gemini_Interaction_Success.gif)

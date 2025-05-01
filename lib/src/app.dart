@@ -6,26 +6,35 @@ import 'package:image_picker/image_picker.dart';
 import 'package:http/http.dart' as http;
 import 'package:speech_to_text/speech_to_text.dart' as stt;
 
+// Define the HomeScreen widget.
 class HomeScreen extends StatefulWidget {
   const HomeScreen({
     super.key,
     required this.settingsController,
   });
 
+  // Declare a final variable to hold the settings controller.
   final dynamic settingsController;
 
+  // Override the createState method to return an instance of _HomeScreenState.
   @override
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
+// Define the state class for the HomeScreen widget.
 class _HomeScreenState extends State<HomeScreen> {
+
+  // Set up the controller for text input and using the speech-to-text library.
   final TextEditingController _controller = TextEditingController();
   final stt.SpeechToText _speech = stt.SpeechToText();
 
+  // Declare variables to track the state of the app.
+  // XFile: Cross-platform File Abstraction
   bool _isListening = false;
   String _response = '';
   XFile? _selectedImage;
 
+  // Initialize and set the speech-to-text controller to return the result of the recognition.
   Future<void> _startListening() async {
     bool available = await _speech.initialize();
     if (available) {
@@ -36,6 +45,7 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  // If the user input is an image, open up the user's photo gallery and pick an image from the gallery.
   Future<void> _pickImage() async {
     final picker = ImagePicker();
     final picked = await picker.pickImage(source: ImageSource.gallery);
@@ -44,6 +54,8 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  // Call Gemini API with the user's input and the API key by using REST API of the http package.
+  // Trim the text input and send the request to Gemini.
   Future<void> _callGemini() async {
     final prompt = _controller.text.trim();
     if (prompt.isEmpty) return;
@@ -102,6 +114,7 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  // Build the UI for the app.
   @override
   Widget build(BuildContext context) {
     return MaterialApp(

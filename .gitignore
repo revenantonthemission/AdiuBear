@@ -46,3 +46,6 @@ app.*.map.json
 /windows/
 /macos/
 /web/
+
+# Keys and secrets
+/api-server/.env

@@ -3,8 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:http/http.dart' as http;
-import 'package:path_provider/path_provider.dart';
-import 'package:record/record.dart';
+import 'package:livekit_client/livekit_client.dart';
 
 // Define the HomeScreen widget.
 class HomeScreen extends StatefulWidget {
@@ -26,6 +25,27 @@ class _HomeScreenState extends State<HomeScreen> {
   XFile? _selectedImage;
   String _result = '';
   bool _isLoading = false;
+  late final Room room;
+  final String WebSocketUrl = 'wss://adiubearcloud-xz6h1ibq.livekit:7800';
+  final String token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3NDY1MzIzMTUsImlzcyI6IkFQSUdoTW51aE50WUdROCIsIm5iZiI6MTc0NjUzMDUxNSwic3ViIjoibWF4IiwidmlkZW8iOnsiY2FuUHVibGlzaCI6dHJ1ZSwiY2FuUHVibGlzaERhdGEiOnRydWUsImNhblN1YnNjcmliZSI6dHJ1ZSwicm9vbSI6ImFkaXViZWFyX3ZvaWNlIiwicm9vbUpvaW4iOnRydWV9fQ.JAhNzbfoFhRT9OWFq5YOoplJ84ZkSV8n1YI77oVAk-Q';
+
+  @override
+  void initState() {
+    super.initState();
+    _connectAndPublishAudio();
+  }
+
+  Future<void> _connectAndPublishAudio() async {
+    room = Room();
+    // LiveKit 서버에 연결
+    await room.connect(WebSocketUrl, token);
+        try {
+        // 로컬 마이크 트랙 퍼블리시
+        await room.localParticipant!.setMicrophoneEnabled(true);
+        } catch (e) {
+      debugPrint('오디오 퍼블리시 오류: $e');
+    }
+  }
 
   // Define the _pickImage method to pick an image from the user's photo gallery.
   Future<void> _pickImage() async {
@@ -37,7 +57,7 @@ class _HomeScreenState extends State<HomeScreen> {
       });
     }
   }
-
+  
   // call the general Google Cloud API via Cloud Run and REST API.
   Future<void> _callCloudRunAPI() async {
     final prompt = _controller.text.trim();
@@ -49,7 +69,7 @@ class _HomeScreenState extends State<HomeScreen> {
     });
 
     final uri = Uri.parse(
-        "https://api-server-636726337012.us-west1.run.app/gemini");
+        "https://api-server-636726337012.asia-northeast3.run.app/gemini");
     String? base64Image;
 
     if (_selectedImage != null) {
@@ -73,14 +93,6 @@ class _HomeScreenState extends State<HomeScreen> {
       setState(() => _result = data['result'] ?? '응답 없음');
     } else {
       setState(() => _result = '오류: ${response.body}');
-    }
-  }
-
-  Future<void> _record() async {
-    final audioRecorder = AudioRecorder();
-    final directory = await getApplicationDocumentsDirectory();
-    if (await audioRecorder.hasPermission()) {
-      await audioRecorder.start(const RecordConfig(), path: '${directory.path}/audio0.m4a');
     }
   }
 
@@ -109,11 +121,6 @@ class _HomeScreenState extends State<HomeScreen> {
                     onPressed: _pickImage,
                     icon: const Icon(Icons.image),
                     label: const Text("이미지 선택"),
-                  ),
-                  const SizedBox(width: 10),
-                  ElevatedButton(
-                    onPressed: _callCloudRunAPI,
-                    child: const Text("Gemini 요청"),
                   ),
                   const SizedBox(width: 10),
                   ElevatedButton(

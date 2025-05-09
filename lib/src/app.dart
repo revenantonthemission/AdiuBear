@@ -1,8 +1,14 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:async';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:http/http.dart' as http;
+import 'package:record/record.dart';
+import 'package:firebase_vertexai/firebase_vertexai.dart';
+import 'package:firebase_core/firebase_core.dart';
+import '../firebase_options.dart';
 
 // Define the HomeScreen widget.
 class HomeScreen extends StatefulWidget {
@@ -51,7 +57,8 @@ class _HomeScreenState extends State<HomeScreen> {
       _result = '';
     });
 
-    final uri = Uri.parse("https://api-server-636726337012.asia-northeast3.run.app/gemini");
+    final uri = Uri.parse(
+        "https://api-server-636726337012.asia-northeast3.run.app/gemini");
     String? base64Image;
 
     if (_selectedImage != null) {
@@ -78,6 +85,32 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  Future<void> _callLiveAPI() async {
+    // Initialize the Vertex AI service and create a `LiveModel` instance
+    final model = FirebaseVertexAI.instance.liveGenerativeModel(
+      // The Live API requires this specific model.
+      model: 'gemini-2.0-flash-live-preview-04-09',
+      // Configure the model to respond with audio
+      liveGenerationConfig: LiveGenerationConfig(
+        responseModalities: [
+          ResponseModalities.audio,
+        ],
+      ),
+    );
+    LiveSession session = await model.connect();
+    final audioRecorder = AudioRecorder();
+
+    if (await audioRecorder.hasPermission()) {
+      final stream = await audioRecorder
+          .startStream(const RecordConfig(encoder: AudioEncoder.pcm16bits));
+    }
+
+    // do something...
+
+    final path = await audioRecorder.stop();
+    audioRecorder.dispose();
+  }
+
   // Build the UI for the app.
   @override
   Widget build(BuildContext context) {
@@ -97,19 +130,28 @@ class _HomeScreenState extends State<HomeScreen> {
                 maxLines: 2,
               ),
               const SizedBox(height: 10),
-              Row(
-                children: [
-                  ElevatedButton.icon(
-                    onPressed: _pickImage,
-                    icon: const Icon(Icons.image),
-                    label: const Text("이미지 선택"),
-                  ),
-                  const SizedBox(width: 10),
-                  ElevatedButton(
-                    onPressed: _callCloudRunAPI,
-                    child: const Text("Gemini 요청"),
-                  ),
-                ],
+              SingleChildScrollView(
+                padding: const EdgeInsets.all(20),
+                child: Row(
+                  children: [
+                    ElevatedButton.icon(
+                      onPressed: _pickImage,
+                      icon: const Icon(Icons.image),
+                      label: const Text("이미지 선택"),
+                    ),
+                    const SizedBox(width: 10),
+                    ElevatedButton(
+                      onPressed: _callCloudRunAPI,
+                      child: const Text("Gemini 요청"),
+                    ),
+                    const SizedBox(width: 10),
+                    ElevatedButton.icon(
+                      onPressed: _callLiveAPI,
+                      icon: const Icon(Icons.mic),
+                      label: const Text("Live API 요청"),
+                    ),
+                  ],
+                ),
               ),
               const SizedBox(height: 10),
               if (_selectedImage != null)

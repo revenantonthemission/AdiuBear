@@ -8,6 +8,12 @@ GDGoC 솔루션 챌린지용 프로젝트입니다.
 
 ## 주요 변경 사항
 
+### 2025/5/9: Firebase SDK 적용
+
+- Dart(Flutter용)로 제공되는 Gemini SDK는 [Firebase SDK 내의 Vertex AI로 통합된 상태](https://firebase.google.com/docs/vertex-ai?hl=ko)입니다. 이를 통해 중간 서버를 이용한 호출이 아닌 직접 호출과 Live API를 활용한 실시간 상호작용이 가능해졌습니다.
+- Live API를 이용한 호출의 경우, Text, Audio 모두 양방향 실시간 통신이 가능합니다.
+- Live API는 `gemini-2.0-flash-live-preview-04-09` 모델에서만 사용 가능하며, Android/Flutter에서만 사용 가능합니다.
+
 ### 2025/5/1: 중간 서버 추가
 
 - Google Gemini API와의 상호작용, 그리고 API 키 보호를 위한 중간 서버를 추가했습니다.

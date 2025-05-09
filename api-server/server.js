@@ -8,9 +8,14 @@ app.use(cors());
 app.use(express.json());
 
 const GEMINI_KEY = process.env.GEMINI_API_KEY;
+const LIVEKIT_KEY = process.env.LIVEKIT_API_KEY;
 if (!GEMINI_KEY) {
   console.error("❌ 환경변수 GEMINI_API_KEY가 설정되지 않았습니다.");
   process.exit(1);
+}
+if !(LIVEKIT_KEY) {
+    console.error("❌ 환경변수 LIVEKIT_API_KEY가 설정되지 않았습니다.");
+    process.exit(1);
 }
 
 app.post('/gemini', async (req, res) => {

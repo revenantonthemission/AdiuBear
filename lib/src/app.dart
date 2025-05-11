@@ -28,64 +28,49 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   final TextEditingController _controller = TextEditingController();
   XFile? _selectedImage;
-  String _result = '';
+  late String _result = '';
   bool _isLoading = false;
+  late LiveSession session;
 
   @override
   void initState() {
     super.initState();
   }
 
-  // Define the _pickImage method to pick an image from the user's photo gallery.
-  Future<void> _pickImage() async {
-    final picker = ImagePicker();
-    final picked = await picker.pickImage(source: ImageSource.gallery);
-    if (picked != null) {
-      setState(() {
-        _selectedImage = picked;
-      });
-    }
-  }
-
-  // call the general Google Cloud API via Cloud Run and REST API.
-  Future<void> _callCloudRunAPI() async {
+  // call Live API via text prompt.
+  Future<void> _textLiveAPI() async {
     final prompt = _controller.text.trim();
     if (prompt.isEmpty) return;
+
+    // Initialize the Vertex AI service and create a `LiveModel` instance
+    final model = FirebaseVertexAI.instance.liveGenerativeModel(
+      // The Live API requires this specific model.
+      model: 'gemini-2.0-flash-live-preview-04-09',
+      // Configure the model to respond with audio
+      liveGenerationConfig: LiveGenerationConfig(
+        responseModalities: [
+          ResponseModalities.text,
+        ],
+        speechConfig: SpeechConfig(voiceName: 'Fenrir'),
+      ),
+    );
 
     setState(() {
       _isLoading = true;
       _result = '';
     });
 
-    final uri = Uri.parse(
-        "https://api-server-636726337012.asia-northeast3.run.app/gemini");
-    String? base64Image;
-
-    if (_selectedImage != null) {
-      final bytes = await _selectedImage!.readAsBytes();
-      base64Image = base64Encode(bytes);
-    }
-
-    final response = await http.post(
-      uri,
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({
-        'prompt': prompt,
-        if (base64Image != null) 'base64Image': base64Image,
-      }),
-    );
+    session = await model.connect();
+    await session.send(input: Content.text(prompt), turnComplete: true);
 
     setState(() => _isLoading = false);
-
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      setState(() => _result = data['result'] ?? '응답 없음');
-    } else {
-      setState(() => _result = '오류: ${response.body}');
+    await for (final response in session.receive()) {
+      final content = response.message as LiveServerContent;
+      final modelTurn = content.modelTurn;
     }
   }
 
-  Future<void> _callLiveAPI() async {
+  Future<void> _voiceLiveAPI() async {
     // Initialize the Vertex AI service and create a `LiveModel` instance
     final model = FirebaseVertexAI.instance.liveGenerativeModel(
       // The Live API requires this specific model.
@@ -97,18 +82,36 @@ class _HomeScreenState extends State<HomeScreen> {
         ],
       ),
     );
+
+    setState(() {
+      _isLoading = true;
+      _result = '';
+    });
+
     LiveSession session = await model.connect();
     final audioRecorder = AudioRecorder();
 
     if (await audioRecorder.hasPermission()) {
       final stream = await audioRecorder
           .startStream(const RecordConfig(encoder: AudioEncoder.pcm16bits));
+      final mediaChunkStream = stream.map((data) {
+        return InlineDataPart('audio/pcm', data);
+      });
+
+      await session.sendMediaStream(mediaChunkStream);
+
+      final responseStream = session.receive();
+
+      setState(() => _result = responseStream.asyncMap((response) async {
+        final content = response.message as LiveServerContent;
+      }) as String);
+
+      setState(() => _isLoading = false);
+
+    } else {
+      setState(() => _isLoading = false);
+      throw Exception('There is something wrong with Live API. Try again.');
     }
-
-    // do something...
-
-    final path = await audioRecorder.stop();
-    audioRecorder.dispose();
   }
 
   // Build the UI for the app.
@@ -116,7 +119,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return MaterialApp(
       home: Scaffold(
-        appBar: AppBar(title: const Text("Gemini 중계 테스트")),
+        appBar: AppBar(title: const Text("Adiubear - Live API Demo")),
         body: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
@@ -124,31 +127,27 @@ class _HomeScreenState extends State<HomeScreen> {
               TextField(
                 controller: _controller,
                 decoration: const InputDecoration(
-                  labelText: "프롬프트 입력",
+                  labelText: "Enter Prompt",
                   border: OutlineInputBorder(),
                 ),
                 maxLines: 2,
               ),
               const SizedBox(height: 10),
               SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
                 padding: const EdgeInsets.all(20),
                 child: Row(
                   children: [
                     ElevatedButton.icon(
-                      onPressed: _pickImage,
-                      icon: const Icon(Icons.image),
-                      label: const Text("이미지 선택"),
-                    ),
-                    const SizedBox(width: 10),
-                    ElevatedButton(
-                      onPressed: _callCloudRunAPI,
-                      child: const Text("Gemini 요청"),
+                      onPressed: _voiceLiveAPI,
+                      icon: const Icon(Icons.mic),
+                      label: const Text("Voice Interaction"),
                     ),
                     const SizedBox(width: 10),
                     ElevatedButton.icon(
-                      onPressed: _callLiveAPI,
-                      icon: const Icon(Icons.mic),
-                      label: const Text("Live API 요청"),
+                      onPressed: _textLiveAPI,
+                      icon: const Icon(Icons.send),
+                      label: const Text("Text Interaction"),
                     ),
                   ],
                 ),

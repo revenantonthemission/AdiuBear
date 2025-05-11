@@ -8,6 +8,10 @@ GDGoC 솔루션 챌린지용 프로젝트입니다.
 
 ## 주요 변경 사항
 
+### 2025/5/11: Live API 개발 중단
+
+- Live API로부터 데이터를 받을 때 어떻게 데이터를 파싱해야 하는지에 대한 자료가 전무합니다. 이런 상황에서 개발을 이어가기는 어렵다고 판단, 기존의 서버 호출 방식으로 전환합니다.
+
 ### 2025/5/9: Firebase SDK 적용
 
 - Dart(Flutter용)로 제공되는 Gemini SDK는 [Firebase SDK 내의 Vertex AI로 통합된 상태](https://firebase.google.com/docs/vertex-ai?hl=ko)입니다. 이를 통해 중간 서버를 이용한 호출이 아닌 직접 호출과 Live API를 활용한 실시간 상호작용이 가능해졌습니다.

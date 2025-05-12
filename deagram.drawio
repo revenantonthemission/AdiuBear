@@ -1,6 +1,6 @@
 <mxfile host="app.diagrams.net" agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Safari/605.1.15" version="27.0.3">
   <diagram name="페이지-1" id="SXUJwAU-UO2_D0f0oAOO">
-    <mxGraphModel dx="1599" dy="1142" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" background="none" math="0" shadow="0">
+    <mxGraphModel dx="1139" dy="461" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" background="none" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
@@ -10,7 +10,7 @@
         <mxCell id="TV6SSAeyK_Qaq8-lBIzq-49" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontFamily=Georgia;fontSize=20;fontColor=default;labelBackgroundColor=none;resizable=0;sketch=1;curveFitting=1;jiggle=2;" parent="1" source="TV6SSAeyK_Qaq8-lBIzq-46" target="TV6SSAeyK_Qaq8-lBIzq-20" edge="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="TV6SSAeyK_Qaq8-lBIzq-46" value="&lt;font&gt;User&lt;/font&gt;" style="ellipse;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fontFamily=Georgia;fontSize=20;labelBackgroundColor=none;resizable=0;fillColor=#008a00;strokeColor=#005700;fillStyle=solid;fontColor=default;sketch=1;curveFitting=1;jiggle=2;" parent="1" vertex="1">
+        <mxCell id="TV6SSAeyK_Qaq8-lBIzq-46" value="&lt;font&gt;User&lt;/font&gt;" style="ellipse;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fontFamily=Georgia;fontSize=20;labelBackgroundColor=none;resizable=0;fillColor=#d5e8d4;strokeColor=#82b366;fillStyle=solid;sketch=1;curveFitting=1;jiggle=2;" parent="1" vertex="1">
           <mxGeometry x="-660" y="267.5" width="80" height="80" as="geometry" />
         </mxCell>
         <mxCell id="TV6SSAeyK_Qaq8-lBIzq-57" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontColor=default;fontFamily=Georgia;sketch=1;curveFitting=1;jiggle=2;flowAnimation=0;startArrow=classic;startFill=1;fontSize=20;labelBackgroundColor=none;" parent="1" source="TV6SSAeyK_Qaq8-lBIzq-56" target="TV6SSAeyK_Qaq8-lBIzq-2" edge="1">
@@ -32,7 +32,7 @@
         <mxCell id="TV6SSAeyK_Qaq8-lBIzq-108" value="" style="ellipse;whiteSpace=wrap;html=1;rounded=1;strokeColor=#82b366;align=center;verticalAlign=middle;fontFamily=Georgia;fontSize=12;labelBorderColor=none;labelBackgroundColor=none;resizable=1;fillColor=#d5e8d4;movable=1;rotatable=1;deletable=1;editable=1;locked=0;connectable=1;sketch=1;curveFitting=1;jiggle=2;fontColor=default;" parent="YDmTkE0umL4QwLqflbc0-1" vertex="1">
           <mxGeometry x="20" y="233.75" width="320" height="190" as="geometry" />
         </mxCell>
-        <mxCell id="TV6SSAeyK_Qaq8-lBIzq-1" value="Google Cloud Run instance" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#bac8d3;strokeColor=#23445d;fontSize=20;glass=0;sketch=1;curveFitting=1;jiggle=2;fontColor=default;fontFamily=Georgia;verticalAlign=top;gradientColor=none;spacingTop=30;labelBackgroundColor=none;" parent="YDmTkE0umL4QwLqflbc0-1" vertex="1">
+        <mxCell id="TV6SSAeyK_Qaq8-lBIzq-1" value="Google Cloud Run Instance" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#bac8d3;strokeColor=#23445d;fontSize=20;glass=0;sketch=1;curveFitting=1;jiggle=2;fontColor=default;fontFamily=Georgia;verticalAlign=top;gradientColor=none;spacingTop=30;labelBackgroundColor=none;" parent="YDmTkE0umL4QwLqflbc0-1" vertex="1">
           <mxGeometry x="450" y="38.75" width="220" height="370" as="geometry" />
         </mxCell>
         <mxCell id="TV6SSAeyK_Qaq8-lBIzq-20" value="User Interface" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=Georgia;fontSize=20;sketch=1;curveFitting=1;jiggle=2;fillColor=#f5f5f5;fontColor=default;strokeColor=#666666;labelBackgroundColor=none;" parent="YDmTkE0umL4QwLqflbc0-1" vertex="1">

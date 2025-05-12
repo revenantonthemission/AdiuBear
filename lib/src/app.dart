@@ -1,14 +1,10 @@
-import 'dart:convert';
 import 'dart:io';
 import 'dart:async';
-import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:http/http.dart' as http;
 import 'package:record/record.dart';
 import 'package:firebase_vertexai/firebase_vertexai.dart';
-import 'package:firebase_core/firebase_core.dart';
-import '../firebase_options.dart';
+import 'package:path_provider/path_provider.dart';
 
 // Define the HomeScreen widget.
 class HomeScreen extends StatefulWidget {
@@ -30,147 +26,175 @@ class _HomeScreenState extends State<HomeScreen> {
   XFile? _selectedImage;
   late String _result = '';
   bool _isLoading = false;
-  late LiveSession session;
+  final audioRecorder = AudioRecorder();
+  final vertexAI = FirebaseVertexAI.instanceFor(
+    location: 'asia-northeast3',
+  );
+  var model = FirebaseVertexAI.instance.generativeModel(model: 'gemini-2.0-flash');
+
+  String? localPath;
+  String? path;
 
   @override
   void initState() {
     super.initState();
+    model = vertexAI.generativeModel(model: 'gemini-2.0-flash');
   }
 
-  // call Live API via text prompt.
-  Future<void> _textLiveAPI() async {
+  Future<void> pickImage() async {
+    try {
+      final image = await ImagePicker().pickImage(source: ImageSource.gallery);
+      if (image == null) return;
+      setState(() {
+        _selectedImage = image;
+      });
+    } on Exception catch (e) {
+      print(e);
+    }
+  }
+
+  Future<String> get _localPath async {
+    final directory = await getApplicationDocumentsDirectory();
+    return directory.path;
+  }
+
+  // call Gemini API via text prompt.
+  Future<void> _textAPI() async {
     final prompt = _controller.text.trim();
     if (prompt.isEmpty) return;
 
-    // Initialize the Vertex AI service and create a `LiveModel` instance
-    final model = FirebaseVertexAI.instance.liveGenerativeModel(
-      // The Live API requires this specific model.
-      model: 'gemini-2.0-flash-live-preview-04-09',
-      // Configure the model to respond with audio
-      liveGenerationConfig: LiveGenerationConfig(
-        responseModalities: [
-          ResponseModalities.text,
-        ],
-        speechConfig: SpeechConfig(voiceName: 'Fenrir'),
-      ),
-    );
-
     setState(() {
       _isLoading = true;
       _result = '';
     });
 
-    session = await model.connect();
-    await session.send(input: Content.text(prompt), turnComplete: true);
+    final chat = model.startChat();
+    final response = await chat.sendMessage(Content.text(prompt));
 
-    setState(() => _isLoading = false);
-    await for (final response in session.receive()) {
-      final content = response.message as LiveServerContent;
-      final modelTurn = content.modelTurn;
-    }
+    setState(() {
+      _result = response.text.toString();
+      _isLoading = false;
+    });
   }
 
-  Future<void> _voiceLiveAPI() async {
-    // Initialize the Vertex AI service and create a `LiveModel` instance
-    final model = FirebaseVertexAI.instance.liveGenerativeModel(
-      // The Live API requires this specific model.
-      model: 'gemini-2.0-flash-live-preview-04-09',
-      // Configure the model to respond with audio
-      liveGenerationConfig: LiveGenerationConfig(
-        responseModalities: [
-          ResponseModalities.audio,
-        ],
-      ),
-    );
-
+  Future<void> _voiceAPI() async {
     setState(() {
-      _isLoading = true;
+      _isLoading = false;
       _result = '';
     });
-
-    LiveSession session = await model.connect();
-    final audioRecorder = AudioRecorder();
 
     if (await audioRecorder.hasPermission()) {
-      final stream = await audioRecorder
-          .startStream(const RecordConfig(encoder: AudioEncoder.pcm16bits));
-      final mediaChunkStream = stream.map((data) {
-        return InlineDataPart('audio/pcm', data);
-      });
 
-      await session.sendMediaStream(mediaChunkStream);
+      if (!await audioRecorder.isRecording()) {
+        localPath = await _localPath;
+        audioRecorder.start(
+            const RecordConfig(), path: '$localPath/audio0.m4a');
+        setState(() {
+          _isLoading = true;
+        });
+      }
+      else {
+        setState(() {
+          _isLoading = false;
+        });
+        path = await audioRecorder.stop();
+        final audio = await File(path!).readAsBytes();
+        final audioPart = InlineDataPart('audio/mpeg', audio);
+        TextPart prompt =
+        TextPart("Transcribe what's said in this audio recording.");
 
-      final responseStream = session.receive();
-
-      setState(() => _result = responseStream.asyncMap((response) async {
-        final content = response.message as LiveServerContent;
-      }) as String);
-
-      setState(() => _isLoading = false);
-
-    } else {
-      setState(() => _isLoading = false);
-      throw Exception('There is something wrong with Live API. Try again.');
-    }
-  }
-
-  // Build the UI for the app.
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      home: Scaffold(
-        appBar: AppBar(title: const Text("Adiubear - Live API Demo")),
-        body: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            children: [
-              TextField(
-                controller: _controller,
-                decoration: const InputDecoration(
-                  labelText: "Enter Prompt",
-                  border: OutlineInputBorder(),
-                ),
-                maxLines: 2,
-              ),
-              const SizedBox(height: 10),
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.all(20),
-                child: Row(
-                  children: [
-                    ElevatedButton.icon(
-                      onPressed: _voiceLiveAPI,
-                      icon: const Icon(Icons.mic),
-                      label: const Text("Voice Interaction"),
-                    ),
-                    const SizedBox(width: 10),
-                    ElevatedButton.icon(
-                      onPressed: _textLiveAPI,
-                      icon: const Icon(Icons.send),
-                      label: const Text("Text Interaction"),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 10),
-              if (_selectedImage != null)
-                Image.file(
-                  File(_selectedImage!.path),
-                  height: 150,
-                ),
-              const Divider(),
-              if (_isLoading)
-                const CircularProgressIndicator()
-              else
-                Expanded(
-                  child: SingleChildScrollView(
-                    child: Text(_result),
-                  ),
-                ),
+        GenerateContentResponse response = await model.generateContent([
+          Content.multi(
+            [
+              prompt,
+              audioPart,
             ],
-          ),
-        ),
-      ),
-    );
+          )
+        ]);
+        prompt = TextPart(response.candidates.first.text.toString());
+        response = await model.generateContent([
+          Content.multi(
+            [
+              prompt,
+            ],
+          )
+        ]);
+
+        setState(() {
+          _result = response.text.toString();
+          _isLoading = false;
+          audioRecorder.dispose();
+        });
+      }
+    }
+  else {
+  setState(() => _isLoading = false);
+  throw Exception('There is something wrong with Live API. Try again.');
   }
 }
+
+// Build the UI for the app.
+@override
+Widget build(BuildContext context) {
+  return MaterialApp(
+    home: Scaffold(
+      appBar: AppBar(title: const Text("Adiubear - Live API Demo")),
+      body: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            TextField(
+              controller: _controller,
+              decoration: const InputDecoration(
+                labelText: "Enter Prompt",
+                border: OutlineInputBorder(),
+              ),
+              maxLines: 2,
+            ),
+            const SizedBox(height: 10),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.all(20),
+              child: Row(
+                children: [
+                  ElevatedButton.icon(
+                    onPressed: pickImage,
+                    icon: const Icon(Icons.image),
+                    label: const Text("Image Interaction"),
+                  ),
+                  const SizedBox(width: 10),
+                  ElevatedButton.icon(
+                    onPressed: _voiceAPI,
+                    icon: const Icon(Icons.mic),
+                    label: const Text("Voice Interaction"),
+                  ),
+                  const SizedBox(width: 10),
+                  ElevatedButton.icon(
+                    onPressed: _textAPI,
+                    icon: const Icon(Icons.send),
+                    label: const Text("Text Interaction"),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 10),
+            if (_selectedImage != null)
+              Image.file(
+                File(_selectedImage!.path),
+                height: 150,
+              ),
+            const Divider(),
+            if (_isLoading)
+              const CircularProgressIndicator()
+            else
+              Expanded(
+                child: SingleChildScrollView(
+                  child: Text(_result),
+                ),
+              ),
+          ],
+        ),
+      ),
+    ),
+  );
+}}

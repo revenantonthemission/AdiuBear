@@ -3,6 +3,8 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:http/http.dart' as http;
+import 'package:path_provider/path_provider.dart';
+import 'package:record/record.dart';
 
 // Define the HomeScreen widget.
 class HomeScreen extends StatefulWidget {
@@ -74,6 +76,14 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  Future<void> _record() async {
+    final audioRecorder = AudioRecorder();
+    final directory = await getApplicationDocumentsDirectory();
+    if (await audioRecorder.hasPermission()) {
+      await audioRecorder.start(const RecordConfig(), path: '${directory.path}/audio0.m4a');
+    }
+  }
+
   // Build the UI for the app.
   @override
   Widget build(BuildContext context) {
@@ -99,6 +109,11 @@ class _HomeScreenState extends State<HomeScreen> {
                     onPressed: _pickImage,
                     icon: const Icon(Icons.image),
                     label: const Text("이미지 선택"),
+                  ),
+                  const SizedBox(width: 10),
+                  ElevatedButton(
+                    onPressed: _callCloudRunAPI,
+                    child: const Text("Gemini 요청"),
                   ),
                   const SizedBox(width: 10),
                   ElevatedButton(

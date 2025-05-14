@@ -1,5 +1,7 @@
 import 'dart:io';
 import 'dart:async';
+import 'dart:typed_data';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:record/record.dart';
@@ -40,12 +42,12 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    model = vertexAI.generativeModel(model: 'gemini-2.0-flash');
-    liveModel = vertexAI.liveGenerativeModel(
-      model: 'gemini-2.0-flash-live-preview-04-09',
-      liveGenerationConfig: LiveGenerationConfig(responseModalities: [
-        ResponseModalities.audio,
-      ]),
+    model = vertexAI.generativeModel(model: 'gemini-2.5-pro-preview-05-06');
+    liveModel = FirebaseVertexAI.instance.liveGenerativeModel(
+      model: 'gemini-2.0-flash-live-001',
+      liveGenerationConfig: LiveGenerationConfig(
+        responseModalities: ResponseModalities.values,
+      ),
     );
   }
 
@@ -76,79 +78,57 @@ class _HomeScreenState extends State<HomeScreen> {
       _result = '';
     });
 
-    final chat = model.startChat();
-    final response = await chat.sendMessage(Content.text(prompt));
+    // Further Implementations for Bidirectional Streaming via Live API
+    _session = await liveModel.connect();
+    await _session.send(input: Content.text(prompt), turnComplete: true);
 
+    await for (final (message as LiveServerContent) in _session.receive()) {
+      for (final part in message.modelTurn!.parts) {
+        _result += part.toString();
+      }
+    }
     setState(() {
-      _result = response.text.toString();
       _isLoading = false;
     });
   }
+
 
   Future<void> _voiceAPI() async {
     setState(() {
       _isLoading = false;
       _result = '';
     });
-
     if (await audioRecorder.hasPermission()) {
-      if (!await audioRecorder.isRecording()) {
-        localPath = await _localPath;
-        audioRecorder.start(const RecordConfig(),
-            path: '$localPath/audio0.m4a');
-        setState(() {
-          _isLoading = true;
-        });
-      } else {
-        setState(() {
-          _isLoading = false;
-        });
-        path = await audioRecorder.stop();
-        final audio = await File(path!).readAsBytes();
-        final audioPart = InlineDataPart('audio/mpeg', audio);
-        TextPart prompt =
-            TextPart("Transcribe what's said in this audio recording.");
-
-        GenerateContentResponse response = await model.generateContent([
-          Content.multi(
-            [
-              prompt,
-              audioPart,
-            ],
-          )
-        ]);
-        prompt = TextPart(response.candidates.first.text.toString());
-        response = await model.generateContent([
-          Content.multi(
-            [
-              prompt,
-            ],
-          )
-        ]);
-
-        setState(() {
-          _result = response.text.toString();
-          _isLoading = false;
-          audioRecorder.dispose();
-        });
-      }
-
       // Further Implementations for Bidirectional Streaming via Live API
-      /*if (!await audioRecorder.isRecording()) {
+      if (!await audioRecorder.isRecording()) {
+        _session = await liveModel.connect();
         localPath = await _localPath;
         final stream = await audioRecorder
-            .startStream(const RecordConfig(encoder: AudioEncoder.pcm16bits));
-        final path = await audioRecorder.stop();
-        final audio = await File(path!).readAsBytes();
-        final audioPart = InlineDataPart('audio/mpeg', audio);
-
-        audioRecorder.dispose();
-      }*/
+            .startStream(
+            const RecordConfig(encoder: AudioEncoder.pcm16bits));
+        final mediaChunkStream = stream.map((data) {
+          return InlineDataPart('audio/pcm', data);
+        });
+        await _session.sendMediaStream(mediaChunkStream);
+        // In a separate thread, receive the audio response from the model
+        await for (final (message as LiveServerContent) in _session
+            .receive()) {
+          // Process the received message
+          for (final part in message.modelTurn!.parts) {
+            if (part is InlineDataPart && part.mimeType == 'audio/pcm') {
+              final Uint8List pcmChunk = part.bytes;
+              _result += String.fromCharCodes(pcmChunk);
+            }
+          }
+        }
+      } else {
+        await audioRecorder.cancel();
+      }
     } else {
-      setState(() => _isLoading = false);
       throw Exception('There is something wrong with Live API. Try again.');
     }
   }
+
 
 // Build the UI for the app.
   @override

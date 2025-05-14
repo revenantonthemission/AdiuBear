@@ -5,6 +5,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:record/record.dart';
 import 'package:firebase_vertexai/firebase_vertexai.dart';
 import 'package:path_provider/path_provider.dart';
+
 // Define the HomeScreen widget.
 class HomeScreen extends StatefulWidget {
   const HomeScreen({
@@ -30,6 +31,8 @@ class _HomeScreenState extends State<HomeScreen> {
     location: 'us-west1',
   );
   late GenerativeModel model;
+  late LiveGenerativeModel liveModel;
+  late LiveSession _session;
 
   String? localPath;
   String? path;
@@ -38,6 +41,12 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     model = vertexAI.generativeModel(model: 'gemini-2.0-flash');
+    liveModel = vertexAI.liveGenerativeModel(
+      model: 'gemini-2.0-flash-live-preview-04-09',
+      liveGenerationConfig: LiveGenerationConfig(responseModalities: [
+        ResponseModalities.audio,
+      ]),
+    );
   }
 
   Future<void> pickImage() async {
@@ -83,16 +92,14 @@ class _HomeScreenState extends State<HomeScreen> {
     });
 
     if (await audioRecorder.hasPermission()) {
-
       if (!await audioRecorder.isRecording()) {
         localPath = await _localPath;
-        audioRecorder.start(
-            const RecordConfig(), path: '$localPath/audio0.m4a');
+        audioRecorder.start(const RecordConfig(),
+            path: '$localPath/audio0.m4a');
         setState(() {
           _isLoading = true;
         });
-      }
-      else {
+      } else {
         setState(() {
           _isLoading = false;
         });
@@ -100,7 +107,7 @@ class _HomeScreenState extends State<HomeScreen> {
         final audio = await File(path!).readAsBytes();
         final audioPart = InlineDataPart('audio/mpeg', audio);
         TextPart prompt =
-        TextPart("Transcribe what's said in this audio recording.");
+            TextPart("Transcribe what's said in this audio recording.");
 
         GenerateContentResponse response = await model.generateContent([
           Content.multi(
@@ -125,75 +132,87 @@ class _HomeScreenState extends State<HomeScreen> {
           audioRecorder.dispose();
         });
       }
+
+      // Further Implementations for Bidirectional Streaming via Live API
+      /*if (!await audioRecorder.isRecording()) {
+        localPath = await _localPath;
+        final stream = await audioRecorder
+            .startStream(const RecordConfig(encoder: AudioEncoder.pcm16bits));
+        final path = await audioRecorder.stop();
+        final audio = await File(path!).readAsBytes();
+        final audioPart = InlineDataPart('audio/mpeg', audio);
+
+        audioRecorder.dispose();
+      }*/
+    } else {
+      setState(() => _isLoading = false);
+      throw Exception('There is something wrong with Live API. Try again.');
     }
-  else {
-  setState(() => _isLoading = false);
-  throw Exception('There is something wrong with Live API. Try again.');
   }
-}
 
 // Build the UI for the app.
-@override
-Widget build(BuildContext context) {
-  return MaterialApp(
-    home: Scaffold(
-      appBar: AppBar(title: const Text("Adiubear - Live API Demo")),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            TextField(
-              controller: _controller,
-              decoration: const InputDecoration(
-                labelText: "Enter Prompt",
-                border: OutlineInputBorder(),
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      home: Scaffold(
+        appBar: AppBar(title: const Text("Adiubear - Live API Demo")),
+        body: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            children: [
+              TextField(
+                controller: _controller,
+                decoration: const InputDecoration(
+                  labelText: "Enter Prompt",
+                  border: OutlineInputBorder(),
+                ),
+                maxLines: 2,
               ),
-              maxLines: 2,
-            ),
-            const SizedBox(height: 10),
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.all(20),
-              child: Row(
-                children: [
-                  ElevatedButton.icon(
-                    onPressed: pickImage,
-                    icon: const Icon(Icons.image),
-                    label: const Text("Image Interaction"),
-                  ),
-                  const SizedBox(width: 10),
-                  ElevatedButton.icon(
-                    onPressed: _voiceAPI,
-                    icon: const Icon(Icons.mic),
-                    label: const Text("Voice Interaction"),
-                  ),
-                  const SizedBox(width: 10),
-                  ElevatedButton.icon(
-                    onPressed: _textAPI,
-                    icon: const Icon(Icons.send),
-                    label: const Text("Text Interaction"),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 10),
-            if (_selectedImage != null)
-              Image.file(
-                File(_selectedImage!.path),
-                height: 150,
-              ),
-            const Divider(),
-            if (_isLoading)
-              const CircularProgressIndicator()
-            else
-              Expanded(
-                child: SingleChildScrollView(
-                  child: Text(_result),
+              const SizedBox(height: 10),
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.all(20),
+                child: Row(
+                  children: [
+                    ElevatedButton.icon(
+                      onPressed: pickImage,
+                      icon: const Icon(Icons.image),
+                      label: const Text("Image Interaction"),
+                    ),
+                    const SizedBox(width: 10),
+                    ElevatedButton.icon(
+                      onPressed: _voiceAPI,
+                      icon: const Icon(Icons.mic),
+                      label: const Text("Voice Interaction"),
+                    ),
+                    const SizedBox(width: 10),
+                    ElevatedButton.icon(
+                      onPressed: _textAPI,
+                      icon: const Icon(Icons.send),
+                      label: const Text("Text Interaction"),
+                    ),
+                  ],
                 ),
               ),
-          ],
+              const SizedBox(height: 10),
+              if (_selectedImage != null)
+                Image.file(
+                  File(_selectedImage!.path),
+                  height: 150,
+                ),
+              const Divider(),
+              if (_isLoading)
+                const CircularProgressIndicator()
+              else
+                Expanded(
+                  child: SingleChildScrollView(
+                    child: Text(_result),
+                  ),
+                ),
+            ],
+          ),
         ),
       ),
-    ),
-  );
-}}
+    );
+  }
+}

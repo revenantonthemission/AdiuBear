@@ -49,7 +49,7 @@ class _HomeScreenState extends State<HomeScreen> {
     });
 
     final uri = Uri.parse(
-        "https://api-server-636726337012.asia-northeast3.run.app/gemini");
+        "https://api-server-636726337012.us-west1.run.app/gemini");
     String? base64Image;
 
     if (_selectedImage != null) {

@@ -36,7 +36,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    model = FirebaseVertexAI.instance.generativeModel(model: 'gemini-2.0-flash-001');
+    model = FirebaseVertexAI.instance.generativeModel(model: 'gemini-2.5-flash-preview-04-17');
   }
 
   Future<void> pickImage() async {
@@ -152,22 +152,22 @@ class _HomeScreenState extends State<HomeScreen> {
                 padding: const EdgeInsets.all(20),
                 child: Row(
                   children: [
-                    ElevatedButton.icon(
+                    IconButton(
                       onPressed: pickImage,
                       icon: const Icon(Icons.image),
-                      label: const Text("Image Interaction"),
+                      tooltip: 'Select Image',
                     ),
                     const SizedBox(width: 10),
-                    ElevatedButton.icon(
+                    IconButton(
                       onPressed: _voiceAPI,
                       icon: const Icon(Icons.mic),
-                      label: const Text("Voice Interaction"),
+                      tooltip: 'Voice Interaction',
                     ),
                     const SizedBox(width: 10),
-                    ElevatedButton.icon(
+                    IconButton(
                       onPressed: _textAPI,
                       icon: const Icon(Icons.send),
-                      label: const Text("Text Interaction"),
+                      tooltip: 'Send Prompt',
                     ),
                   ],
                 ),

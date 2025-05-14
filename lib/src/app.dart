@@ -5,7 +5,6 @@ import 'package:image_picker/image_picker.dart';
 import 'package:record/record.dart';
 import 'package:firebase_vertexai/firebase_vertexai.dart';
 import 'package:path_provider/path_provider.dart';
-
 // Define the HomeScreen widget.
 class HomeScreen extends StatefulWidget {
   const HomeScreen({
@@ -28,9 +27,9 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _isLoading = false;
   final audioRecorder = AudioRecorder();
   final vertexAI = FirebaseVertexAI.instanceFor(
-    location: 'asia-northeast3',
+    location: 'us-west1',
   );
-  var model = FirebaseVertexAI.instance.generativeModel(model: 'gemini-2.0-flash');
+  late GenerativeModel model;
 
   String? localPath;
   String? path;

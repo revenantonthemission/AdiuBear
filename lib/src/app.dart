@@ -5,6 +5,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:record/record.dart';
 import 'package:firebase_vertexai/firebase_vertexai.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:flutter_markdown/flutter_markdown.dart';
 
 // Define the HomeScreen widget.
 class HomeScreen extends StatefulWidget {
@@ -27,12 +28,7 @@ class _HomeScreenState extends State<HomeScreen> {
   late String _result = '';
   bool _isLoading = false;
   final audioRecorder = AudioRecorder();
-  final vertexAI = FirebaseVertexAI.instanceFor(
-    location: 'us-west1',
-  );
   late GenerativeModel model;
-  late LiveGenerativeModel liveModel;
-  late LiveSession _session;
 
   String? localPath;
   String? path;
@@ -40,13 +36,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    model = vertexAI.generativeModel(model: 'gemini-2.0-flash');
-    liveModel = vertexAI.liveGenerativeModel(
-      model: 'gemini-2.0-flash-live-preview-04-09',
-      liveGenerationConfig: LiveGenerationConfig(responseModalities: [
-        ResponseModalities.audio,
-      ]),
-    );
+    model = FirebaseVertexAI.instance.generativeModel(model: 'gemini-2.0-flash-001');
   }
 
   Future<void> pickImage() async {
@@ -132,21 +122,9 @@ class _HomeScreenState extends State<HomeScreen> {
           audioRecorder.dispose();
         });
       }
-
-      // Further Implementations for Bidirectional Streaming via Live API
-      /*if (!await audioRecorder.isRecording()) {
-        localPath = await _localPath;
-        final stream = await audioRecorder
-            .startStream(const RecordConfig(encoder: AudioEncoder.pcm16bits));
-        final path = await audioRecorder.stop();
-        final audio = await File(path!).readAsBytes();
-        final audioPart = InlineDataPart('audio/mpeg', audio);
-
-        audioRecorder.dispose();
-      }*/
     } else {
       setState(() => _isLoading = false);
-      throw Exception('There is something wrong with Live API. Try again.');
+      throw Exception('There is something wrong with the Gemini API. Try again.');
     }
   }
 
@@ -206,7 +184,9 @@ class _HomeScreenState extends State<HomeScreen> {
               else
                 Expanded(
                   child: SingleChildScrollView(
-                    child: Text(_result),
+                    child: MarkdownBody(
+                      data: _result,
+                    ),
                   ),
                 ),
             ],

@@ -1,10 +1,10 @@
-import 'dart:convert';
 import 'dart:io';
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:http/http.dart' as http;
-import 'package:path_provider/path_provider.dart';
 import 'package:record/record.dart';
+import 'package:firebase_vertexai/firebase_vertexai.dart';
+import 'package:path_provider/path_provider.dart';
 
 // Define the HomeScreen widget.
 class HomeScreen extends StatefulWidget {
@@ -24,22 +24,50 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   final TextEditingController _controller = TextEditingController();
   XFile? _selectedImage;
-  String _result = '';
+  late String _result = '';
   bool _isLoading = false;
+  final audioRecorder = AudioRecorder();
+  final vertexAI = FirebaseVertexAI.instanceFor(
+    location: 'us-west1',
+  );
+  late GenerativeModel model;
+  late LiveGenerativeModel liveModel;
+  late LiveSession _session;
 
-  // Define the _pickImage method to pick an image from the user's photo gallery.
-  Future<void> _pickImage() async {
-    final picker = ImagePicker();
-    final picked = await picker.pickImage(source: ImageSource.gallery);
-    if (picked != null) {
+  String? localPath;
+  String? path;
+
+  @override
+  void initState() {
+    super.initState();
+    model = vertexAI.generativeModel(model: 'gemini-2.0-flash');
+    liveModel = vertexAI.liveGenerativeModel(
+      model: 'gemini-2.0-flash-live-preview-04-09',
+      liveGenerationConfig: LiveGenerationConfig(responseModalities: [
+        ResponseModalities.audio,
+      ]),
+    );
+  }
+
+  Future<void> pickImage() async {
+    try {
+      final image = await ImagePicker().pickImage(source: ImageSource.gallery);
+      if (image == null) return;
       setState(() {
-        _selectedImage = picked;
+        _selectedImage = image;
       });
+    } on Exception catch (e) {
+      print(e);
     }
   }
 
-  // call the general Google Cloud API via Cloud Run and REST API.
-  Future<void> _callCloudRunAPI() async {
+  Future<String> get _localPath async {
+    final directory = await getApplicationDocumentsDirectory();
+    return directory.path;
+  }
+
+  // call Gemini API via text prompt.
+  Future<void> _textAPI() async {
     final prompt = _controller.text.trim();
     if (prompt.isEmpty) return;
 
@@ -48,48 +76,86 @@ class _HomeScreenState extends State<HomeScreen> {
       _result = '';
     });
 
-    final uri = Uri.parse(
-        "https://api-server-636726337012.us-west1.run.app/gemini");
-    String? base64Image;
+    final chat = model.startChat();
+    final response = await chat.sendMessage(Content.text(prompt));
 
-    if (_selectedImage != null) {
-      final bytes = await _selectedImage!.readAsBytes();
-      base64Image = base64Encode(bytes);
-    }
-
-    final response = await http.post(
-      uri,
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({
-        'prompt': prompt,
-        if (base64Image != null) 'base64Image': base64Image,
-      }),
-    );
-
-    setState(() => _isLoading = false);
-
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      setState(() => _result = data['result'] ?? '응답 없음');
-    } else {
-      setState(() => _result = '오류: ${response.body}');
-    }
+    setState(() {
+      _result = response.text.toString();
+      _isLoading = false;
+    });
   }
 
-  Future<void> _record() async {
-    final audioRecorder = AudioRecorder();
-    final directory = await getApplicationDocumentsDirectory();
+  Future<void> _voiceAPI() async {
+    setState(() {
+      _isLoading = false;
+      _result = '';
+    });
+
     if (await audioRecorder.hasPermission()) {
-      await audioRecorder.start(const RecordConfig(), path: '${directory.path}/audio0.m4a');
+      if (!await audioRecorder.isRecording()) {
+        localPath = await _localPath;
+        audioRecorder.start(const RecordConfig(),
+            path: '$localPath/audio0.m4a');
+        setState(() {
+          _isLoading = true;
+        });
+      } else {
+        setState(() {
+          _isLoading = false;
+        });
+        path = await audioRecorder.stop();
+        final audio = await File(path!).readAsBytes();
+        final audioPart = InlineDataPart('audio/mpeg', audio);
+        TextPart prompt =
+            TextPart("Transcribe what's said in this audio recording.");
+
+        GenerateContentResponse response = await model.generateContent([
+          Content.multi(
+            [
+              prompt,
+              audioPart,
+            ],
+          )
+        ]);
+        prompt = TextPart(response.candidates.first.text.toString());
+        response = await model.generateContent([
+          Content.multi(
+            [
+              prompt,
+            ],
+          )
+        ]);
+
+        setState(() {
+          _result = response.text.toString();
+          _isLoading = false;
+          audioRecorder.dispose();
+        });
+      }
+
+      // Further Implementations for Bidirectional Streaming via Live API
+      /*if (!await audioRecorder.isRecording()) {
+        localPath = await _localPath;
+        final stream = await audioRecorder
+            .startStream(const RecordConfig(encoder: AudioEncoder.pcm16bits));
+        final path = await audioRecorder.stop();
+        final audio = await File(path!).readAsBytes();
+        final audioPart = InlineDataPart('audio/mpeg', audio);
+
+        audioRecorder.dispose();
+      }*/
+    } else {
+      setState(() => _isLoading = false);
+      throw Exception('There is something wrong with Live API. Try again.');
     }
   }
 
-  // Build the UI for the app.
+// Build the UI for the app.
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       home: Scaffold(
-        appBar: AppBar(title: const Text("Gemini 중계 테스트")),
+        appBar: AppBar(title: const Text("Adiubear - Live API Demo")),
         body: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
@@ -97,30 +163,36 @@ class _HomeScreenState extends State<HomeScreen> {
               TextField(
                 controller: _controller,
                 decoration: const InputDecoration(
-                  labelText: "프롬프트 입력",
+                  labelText: "Enter Prompt",
                   border: OutlineInputBorder(),
                 ),
                 maxLines: 2,
               ),
               const SizedBox(height: 10),
-              Row(
-                children: [
-                  ElevatedButton.icon(
-                    onPressed: _pickImage,
-                    icon: const Icon(Icons.image),
-                    label: const Text("이미지 선택"),
-                  ),
-                  const SizedBox(width: 10),
-                  ElevatedButton(
-                    onPressed: _callCloudRunAPI,
-                    child: const Text("Gemini 요청"),
-                  ),
-                  const SizedBox(width: 10),
-                  ElevatedButton(
-                    onPressed: _callCloudRunAPI,
-                    child: const Text("Gemini 요청"),
-                  ),
-                ],
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.all(20),
+                child: Row(
+                  children: [
+                    ElevatedButton.icon(
+                      onPressed: pickImage,
+                      icon: const Icon(Icons.image),
+                      label: const Text("Image Interaction"),
+                    ),
+                    const SizedBox(width: 10),
+                    ElevatedButton.icon(
+                      onPressed: _voiceAPI,
+                      icon: const Icon(Icons.mic),
+                      label: const Text("Voice Interaction"),
+                    ),
+                    const SizedBox(width: 10),
+                    ElevatedButton.icon(
+                      onPressed: _textAPI,
+                      icon: const Icon(Icons.send),
+                      label: const Text("Text Interaction"),
+                    ),
+                  ],
+                ),
               ),
               const SizedBox(height: 10),
               if (_selectedImage != null)

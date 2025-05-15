@@ -1,5 +1,0 @@
-# Synthetic package output (package:flutter_gen) is deprecated: https://flutter.dev/to/flutter-gen-deprecation.
-synthetic-package: false
-arb-dir: lib/src/localization
-template-arb-file: app_en.arb
-output-localization-file: app_localizations.dart

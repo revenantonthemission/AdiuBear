@@ -1,11 +1,13 @@
 import 'dart:io';
 import 'dart:async';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:record/record.dart';
 import 'package:firebase_vertexai/firebase_vertexai.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
+import 'chat.dart';
 
 // Define the HomeScreen widget.
 class HomeScreen extends StatefulWidget {
@@ -29,6 +31,7 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _isLoading = false;
   final audioRecorder = AudioRecorder();
   late GenerativeModel model;
+  late FirebaseFirestore db;
 
   String? localPath;
   String? path;
@@ -36,7 +39,9 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    model = FirebaseVertexAI.instance.generativeModel(model: 'gemini-2.5-flash-preview-04-17');
+    model =
+        FirebaseVertexAI.instance.generativeModel(model: 'gemini-2.0-flash');
+    db = FirebaseFirestore.instance;
   }
 
   Future<void> pickImage() async {
@@ -66,11 +71,24 @@ class _HomeScreenState extends State<HomeScreen> {
       _result = '';
     });
 
+    final requestTime = DateTime.now().toUtc();
     final chat = model.startChat();
     final response = await chat.sendMessage(Content.text(prompt));
+    final responseTime = DateTime.now().toUtc();
+
+    // The chat record between user and Gemini
+    final chatRecord = <String, dynamic>{
+      'user': prompt,
+      'user-timestamp': requestTime,
+      'gemini': response.text,
+      'gemini-timestamp': responseTime,
+    };
+    db.collection('chat-records').add(chatRecord).then(
+        (DocumentReference doc) =>
+            {print('DocumentSnapshot added with ID: ${doc.id}')});
 
     setState(() {
-      _result = response.text.toString();
+      _result = response.text!;
       _isLoading = false;
     });
   }
@@ -124,7 +142,8 @@ class _HomeScreenState extends State<HomeScreen> {
       }
     } else {
       setState(() => _isLoading = false);
-      throw Exception('There is something wrong with the Gemini API. Try again.');
+      throw Exception(
+          'There is something wrong with the Gemini API. Try again.');
     }
   }
 
@@ -132,6 +151,10 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      title: "Adiubear Demo",
+      routes: {
+        '/chat': (context) => const GeminiChatView(),
+      },
       home: Scaffold(
         appBar: AppBar(title: const Text("Adiubear - Live API Demo")),
         body: Padding(

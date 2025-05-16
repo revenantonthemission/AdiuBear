@@ -21,10 +21,14 @@ class CustomDrawer extends StatelessWidget {
             children: [
               DrawerHeader(
                 child: Center(
-                  child: Icon(
-                    Icons.message,
-                    color: Theme.of(context).colorScheme.primary,
-                    size: 40,
+                  child: SizedBox(
+                    // import Adiu-Photoroom.png
+                    width: 100,
+                    height: 100,
+                    child: Image.asset(
+                      "assets/resources/Adiu-Photoroom.png",
+                      fit: BoxFit.fill,
+                    ),
                   ),
                 ),
               ),

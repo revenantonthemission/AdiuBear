@@ -41,6 +41,7 @@ class AuthenticationService {
           'email': email,
         },
       );
+
       return userCredential;
     } on FirebaseAuthException catch (e) {
       throw Exception(e.code);

@@ -2,20 +2,8 @@ import 'package:adiubear/src/authentication/authentication_gate.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:adiubear/firebase_options.dart';
-import 'package:adiubear/src/pages/home.dart';
-import 'dart:io';
-import 'dart:async';
-import 'package:adiubear/src/pages/register_page.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
-import 'package:record/record.dart';
-import 'package:firebase_vertexai/firebase_vertexai.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:adiubear/src/core_components/custom_theme.dart';
-import 'package:adiubear/src/authentication/assure_login.dart';
-import 'package:flutter_markdown/flutter_markdown.dart';
 
 void main() async {
   // Initialize the Firebase client

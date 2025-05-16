@@ -53,6 +53,7 @@ class HomePage extends StatelessWidget {
       Map<String, dynamic> userData, BuildContext context) {
     if (userData["Email"] != _authenticationService.currentUser!.email) {
       return UserTile(
+        /// TODO: 이 텍스트를 대화의 주제로 설정.
         text: userData['email'],
         onTap: () {
           Navigator.push(

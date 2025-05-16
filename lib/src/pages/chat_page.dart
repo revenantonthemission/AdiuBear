@@ -54,8 +54,7 @@ class _ChatPageState extends State<ChatPage> {
 
   void sendMessage() async {
     if (_messageController.text.isNotEmpty) {
-      await _chatService.sendMessage(
-          widget.receiverID, _messageController.text);
+      await _chatService.sendMessageToGemini(_messageController.text);
       _messageController.clear();
     }
 
@@ -112,7 +111,8 @@ class _ChatPageState extends State<ChatPage> {
   }
 
   Widget _buildMessageList() {
-    String senderID = _authenticationService.currentUser!.uid;
+    //String senderID = _authenticationService.currentUser!.uid;
+    String senderID = 'gemini';
     return StreamBuilder(
       stream: _chatService.getMessages(widget.receiverID, senderID),
       builder: (context, snapshot) {

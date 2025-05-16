@@ -9,6 +9,10 @@ plugins {
 }
 
 android {
+    signingConfigs {
+        release {
+        }
+    }
     namespace = "com.newcomers.adiubear"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
@@ -48,6 +52,7 @@ android {
             manifestPlaceholders = [applicationName: "android.app.Application"]
         }
     }
+    buildToolsVersion '35.0.0'
 }
 
 flutter {

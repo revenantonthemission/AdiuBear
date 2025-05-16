@@ -4,7 +4,7 @@ description: "The project for GDGoC Solution Challenge."
 # Prevent accidental publishing to pub.dev.
 publish_to: 'none'
 
-version: 1.4.0
+version: 0.5.0+2
 
 environment:
   sdk: ^3.5.1

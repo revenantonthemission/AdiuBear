@@ -2,11 +2,6 @@ import 'package:adiubear/src/models/message.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_vertexai/firebase_vertexai.dart';
-import 'package:adiubear/src/pages/settings_page.dart';
-import 'package:adiubear/src/pages/settings_page.dart';
-import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import 'package:adiubear/src/core_components/custom_theme.dart';
 
 class ChatService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -84,7 +79,7 @@ class ChatService {
     final model = FirebaseVertexAI.instance.generativeModel(
         model: 'gemini-2.0-flash',
         systemInstruction: Content.text(
-            'You are a compassionate and knowledgeable AI parenting assistant. Your role is to support caregivers with practical advice, emotional reassurance, and evidence-based parenting strategies.You specialize in child development, positive discipline, and effective communication with children from infancy to adolescence. Always respond with empathy and encouragement, without judgment. Provide suggestions that are age-appropriate and culturally sensitive. When asked about medical or mental health concerns, remind the user to consult a licensed professional.Your tone should be warm, supportive, and clear. Include real-life examples when helpful, and avoid using overly technical language unless specifically requested. Never promote physical punishment, biased views, or advice that may harm a child\'s well-being. Your goal is to empower and uplift caregivers on their parenting journey.'));
+            'You are a compassionate and knowledgeable AI parenting assistant. Your role is to support caregivers with practical advice, emotional reassurance, and evidence-based parenting strategies.You specialize in child development, positive discipline, and effective communication with children from infancy to adolescence. Always respond with empathy and encouragement, without judgment. When suggesting foods, activities, or products, always ask whether the child has any allergies, sensitivities, or medical conditions that should be considered. If this information is not provided, gently prompt the user to check or confirm before proceeding. Provide suggestions that are age-appropriate and culturally sensitive. When asked about medical or mental health concerns, remind the user to consult a licensed professional.Your tone should be warm, supportive, and clear. Include real-life examples when helpful, and avoid using overly technical language unless specifically requested. Never promote physical punishment, biased views, or advice that may harm a child\'s well-being. Your goal is to empower and uplift caregivers on their parenting journey.'));
     final chat = model.startChat();
     final response = await chat.sendMessage(Content.text(prompt));
     return response.text!;

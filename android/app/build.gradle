@@ -9,7 +9,7 @@ plugins {
 }
 
 android {
-    namespace = "com.example.adiubear"
+    namespace = "com.newcomers.adiubear"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -23,7 +23,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.example.adiubear"
+        applicationId = "com.newcomers.adiubear"
         manifestPlaceholders = [applicationName: "android.app.Application"]
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
@@ -32,12 +32,11 @@ android {
         versionCode = flutter.versionCode
         versionName = flutter.versionName
     }
+    dependencies {
+        implementation 'com.google.android.play:integrity:1.4.0'
+    }
 
     buildTypes {
-        release {
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.debug
-        }
         release {
             manifestPlaceholders = [applicationName: "android.app.Application"]
         }
